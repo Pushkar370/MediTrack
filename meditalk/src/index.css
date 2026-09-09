@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    @apply bg-background text-ink font-sans;
+  }
+  * {
+    @apply border-sage/30;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white rounded-2xl shadow-card border border-sage/30 p-5;
+  }
+  .input-base {
+    @apply w-full rounded-xl border border-sage/40 bg-white px-3.5 py-2.5 text-sm text-ink
+      placeholder:text-ink/40 focus:border-primary focus:ring-2 focus:ring-primary/20
+      focus:outline-none transition;
+  }
+  .label-base {
+    @apply block text-sm font-medium text-ink/80 mb-1.5;
+  }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+@keyframes slideUp {
+  from { transform: translateY(16px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Custom scrollbar for a cleaner SaaS look */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #cdded9;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #b3ccc5;
+}

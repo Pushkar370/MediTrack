@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: meditalk
+    env: node
+    plan: free # or starter if you need more resources
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+    disk:
+      name: sqlite-data
+      mountPath: /var/data
+      sizeGB: 1
