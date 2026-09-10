@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { getDb } from '../database/db.js';
+import { query } from '../database/db.js';
 
 const router = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'meditalk_dev_secret_2026';
@@ -14,9 +14,8 @@ router.post('/login', async (req, res) => {
   }
 
   try {
-    const pool = await getDb();
-    const result = await pool.query('SELECT * FROM users WHERE email = $1 AND role = $2', [email, role]);
-    const user = result.rows[0];
+    const { rows } = await query('SELECT * FROM users WHERE email = $1 AND role = $2', [email, role]);
+    const user = rows[0];
 
     if (!user || !bcrypt.compareSync(password, user.password)) {
       return res.status(401).json({ success: false, message: 'Invalid email, password or role.' });
@@ -32,11 +31,14 @@ router.post('/login', async (req, res) => {
 
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
 
-    // Add audit log for login (fire and forget)
-    pool.query(`
-      INSERT INTO audit_logs (timestamp, user_name, role, action, entity_type, entity_id, status)
-      VALUES (CURRENT_TIMESTAMP, $1, $2, 'Logged in', 'Auth', 'Web Browser', 'success')
-    `, [user.name, user.role === 'admin' ? 'Administrator' : user.role.charAt(0).toUpperCase() + user.role.slice(1)]).catch(() => {});
+    // Add audit log for login
+    try {
+      await query(
+        `INSERT INTO audit_logs (user_id, user_name, role, action, entity_type, entity_id, status)
+         VALUES ($1, $2, $3, 'Logged in', 'Auth', 'Web Browser', 'success')`,
+        [user.id, user.name, user.role === 'admin' ? 'Administrator' : user.role.charAt(0).toUpperCase() + user.role.slice(1)]
+      );
+    } catch (_) { /* non-critical */ }
 
     res.json({
       success: true,
@@ -58,9 +60,8 @@ router.post('/register', async (req, res) => {
   }
 
   try {
-    const pool = await getDb();
-    const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
-    if (existing.rows.length > 0) {
+    const { rows: existing } = await query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existing.length > 0) {
       return res.status(409).json({ success: false, message: 'An account with this email already exists.' });
     }
 
@@ -69,13 +70,13 @@ router.post('/register', async (req, res) => {
     const hash = bcrypt.hashSync(password, 10);
 
     if (patientId) {
-      await pool.query(
-        `INSERT INTO patients (id, name, email, status, registered_at) VALUES ($1, $2, $3, 'active', CURRENT_TIMESTAMP)`,
+      await query(
+        `INSERT INTO patients (id, name, email, status, registered_at) VALUES ($1, $2, $3, 'active', NOW())`,
         [patientId, name, email]
       );
     }
 
-    await pool.query(
+    await query(
       `INSERT INTO users (id, name, email, password, role, patient_id) VALUES ($1, $2, $3, $4, $5, $6)`,
       [userId, name, email, hash, role, patientId]
     );

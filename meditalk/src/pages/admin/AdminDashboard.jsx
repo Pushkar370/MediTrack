@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Users, UserCheck, CalendarDays, CheckCircle2, XCircle, Clock } from "lucide-react";
 import PageHeader from "../../components/ui/PageHeader";
 import StatCard from "../../components/ui/StatCard";
@@ -8,8 +9,18 @@ import { useFetch } from "../../hooks/useFetch";
 import { getDashboardStats, getAnalytics } from "../../services/adminService";
 
 export default function AdminDashboard() {
-  const { data: stats, loading } = useFetch(() => getDashboardStats("admin"));
-  const { data: analytics } = useFetch(() => getAnalytics());
+  const { data: stats, loading, reload: reloadStats } = useFetch(() => getDashboardStats("admin"));
+  const { data: analytics, reload: reloadAnalytics } = useFetch(() => getAnalytics());
+  const intervalRef = useRef(null);
+
+  useEffect(() => {
+    // Auto-refresh stats every 60 seconds for live data
+    intervalRef.current = setInterval(() => {
+      reloadStats();
+      reloadAnalytics();
+    }, 60_000);
+    return () => clearInterval(intervalRef.current);
+  }, [reloadStats, reloadAnalytics]);
 
   if (loading || !stats) return <LoadingState />;
 

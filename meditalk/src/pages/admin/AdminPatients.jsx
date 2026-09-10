@@ -101,7 +101,7 @@ export default function AdminPatients() {
       label: "Actions",
       render: (r) => (
         <div className="flex flex-wrap gap-1.5">
-          <Button size="sm" variant="outline" onClick={() => navigate(`/doctor/patients/${r.id}`)}><Eye className="h-3.5 w-3.5" /></Button>
+          <Button size="sm" variant="outline" onClick={() => { setEditing(r); setForm(r); }}><Eye className="h-3.5 w-3.5" /></Button>
           <Button size="sm" variant="ghost" onClick={() => openEdit(r)}><Pencil className="h-3.5 w-3.5" /></Button>
           <Button size="sm" variant={r.status === "active" ? "secondary" : "success"} onClick={() => setToggle({ id: r.id, next: r.status === "active" ? "inactive" : "active" })}>
             <Power className="h-3.5 w-3.5" />

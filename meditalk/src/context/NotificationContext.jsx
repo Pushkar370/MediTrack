@@ -1,22 +1,33 @@
-import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { getNotifications, markAsRead, markAllAsRead, deleteNotification } from "../services/notificationService";
 
 const NotificationContext = createContext(null);
 
+const POLL_INTERVAL = 30_000; // 30 seconds
+
 export function NotificationProvider({ children }) {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const intervalRef = useRef(null);
 
   const load = useCallback(async () => {
-    setLoading(true);
-    const data = await getNotifications();
-    setNotifications(data);
-    setLoading(false);
+    try {
+      const data = await getNotifications();
+      setNotifications(data);
+    } catch (_) {
+      // silently fail on polling errors
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
     load();
+    // Start polling
+    intervalRef.current = setInterval(load, POLL_INTERVAL);
+    return () => clearInterval(intervalRef.current);
   }, [load]);
+
 
   const markRead = useCallback(async (id) => {
     setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));

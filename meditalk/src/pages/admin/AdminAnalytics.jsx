@@ -8,11 +8,12 @@ import Select from "../../components/ui/Select";
 import { BarChart, LineChart, DonutChart } from "../../components/charts/Charts";
 import { useToast } from "../../context/ToastContext";
 import { useFetch } from "../../hooks/useFetch";
-import { getAnalytics } from "../../services/adminService";
+import { getAnalytics, getDashboardStats } from "../../services/adminService";
 
 export default function AdminAnalytics() {
   const toast = useToast();
   const { data: a, loading } = useFetch(() => getAnalytics());
+  const { data: stats } = useFetch(() => getDashboardStats('admin'));
   const [range, setRange] = useState("30d");
 
   function exportCsv() {
@@ -47,12 +48,12 @@ export default function AdminAnalytics() {
         } />
 
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        <StatCard icon={Users} label="Total Patients" value={70} tone="primary" hint="+12 this month" />
-        <StatCard icon={UserPlus} label="New Patients" value={12} tone="sage" hint="+3 vs last month" />
-        <StatCard icon={CalendarDays} label="Appointments" value={357} tone="accent" />
-        <StatCard icon={Stethoscope} label="Consultations" value={210} tone="primary" />
-        <StatCard icon={XCircle} label="Cancellation Rate" value="6%" tone="danger" hint="-2% vs last month" />
-        <StatCard icon={Activity} label="Utilization" value="88%" tone="success" hint="+5% vs last month" />
+        <StatCard icon={Users} label="Total Patients" value={stats?.totalPatients ?? '—'} tone="primary" />
+        <StatCard icon={UserPlus} label="Total Doctors" value={stats?.totalDoctors ?? '—'} tone="sage" />
+        <StatCard icon={CalendarDays} label="Today's Appointments" value={stats?.todayAppointments ?? '—'} tone="accent" />
+        <StatCard icon={Stethoscope} label="Completed Consultations" value={stats?.completedConsultations ?? '—'} tone="primary" />
+        <StatCard icon={XCircle} label="Cancelled Appointments" value={stats?.cancelledAppointments ?? '—'} tone="danger" />
+        <StatCard icon={Activity} label="Pending Appointments" value={stats?.pendingAppointments ?? '—'} tone="success" />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">

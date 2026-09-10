@@ -25,17 +25,17 @@ export default function AdminAuditLogs() {
     .filter(
       (l) =>
         !search ||
-        l.user.toLowerCase().includes(search.toLowerCase()) ||
-        l.action.toLowerCase().includes(search.toLowerCase())
+        (l.user_name || '').toLowerCase().includes(search.toLowerCase()) ||
+        (l.action || '').toLowerCase().includes(search.toLowerCase())
     );
 
   const columns = [
     { key: "timestamp", label: "Timestamp", render: (r) => formatDateTime(r.timestamp) },
-    { key: "user", label: "User" },
+    { key: "user_name", label: "User" },
     { key: "role", label: "Role" },
     { key: "action", label: "Action" },
-    { key: "resource", label: "Resource" },
-    { key: "device", label: "Device" },
+    { key: "entity_type", label: "Resource" },
+    { key: "entity_id", label: "Reference" },
     { key: "status", label: "Status", render: (r) => <StatusBadge status={r.status} label={r.status} /> },
   ];
 
