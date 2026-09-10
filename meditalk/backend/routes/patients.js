@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import bcrypt from 'bcryptjs';
 import { query } from '../database/db.js';
 
 const router = Router();
@@ -63,6 +64,25 @@ router.post('/', async (req, res) => {
       'INSERT INTO patients (id, name, email, phone, dob, gender, address, blood_group, height, weight, allergies, chronic_conditions, current_medications, emergency_contact, insurance, status, registered_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,NOW())',
       [id, name, email, phone, dob, gender, address, bloodGroup, height, weight, JSON.stringify(allergies), JSON.stringify(chronicConditions), JSON.stringify(currentMedications), JSON.stringify(emergencyContact), JSON.stringify(insurance), status]
     );
+
+    if (email) {
+      try {
+        const hash = bcrypt.hashSync('password', 10);
+        await query(
+          'INSERT INTO users (id, name, email, password, role, patient_id) VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (email) DO NOTHING',
+          ['U-' + id, name, email, hash, 'patient', id]
+        );
+      } catch (_) {}
+    }
+
+    try {
+      await query(
+        `INSERT INTO audit_logs (user_id, user_name, role, action, entity_type, entity_id, status)
+         VALUES ($1, $2, 'Administrator', 'Created new patient profile', 'Patient', $3, 'success')`,
+        ['ADMIN', name, id]
+      );
+    } catch (_) {}
+
     const { rows } = await query('SELECT * FROM patients WHERE id = $1', [id]);
     res.status(201).json(parsePatient(rows[0]));
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to create patient' }); }
@@ -85,6 +105,24 @@ router.put('/:id', async (req, res) => {
         JSON.stringify(insurance ?? safeJson(e.insurance, {})),
         status, id]
     );
+
+    // Sync changes across related tables (appointments, prescriptions, users)
+    try {
+      if (name) {
+        await query('UPDATE appointments SET patient_name = $1 WHERE patient_id = $2', [name, id]);
+        await query('UPDATE prescriptions SET patient_name = $1 WHERE patient_id = $2', [name, id]);
+        await query('UPDATE users SET name = $1 WHERE patient_id = $2', [name, id]);
+      }
+      if (email) {
+        await query('UPDATE users SET email = $1 WHERE patient_id = $2', [email, id]);
+      }
+      await query(
+        `INSERT INTO audit_logs (user_id, user_name, role, action, entity_type, entity_id, status)
+         VALUES ($1, $2, 'Patient', 'Updated patient medical profile', 'Patient', $3, 'success')`,
+        [id, name, id]
+      );
+    } catch (_) {}
+
     const { rows: updated } = await query('SELECT * FROM patients WHERE id = $1', [id]);
     res.json(parsePatient(updated[0]));
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to update patient' }); }

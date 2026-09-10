@@ -57,10 +57,10 @@ export default function AdminAnalytics() {
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
-        <Card title="Weekly Appointments"><BarChart labels={a.appointmentTrends.labels} data={a.appointmentTrends.data} /></Card>
-        <Card title="Monthly Patient Registrations"><LineChart labels={a.patientRegistrations.labels} data={a.patientRegistrations.data} color="#3A8D5D" /></Card>
-        <Card title="Appointment Status"><DonutChart labels={a.appointmentStatus.labels} data={a.appointmentStatus.data} /></Card>
-        <Card title="Specialty-wise Appointments"><BarChart labels={a.specialtyAppointments.labels} data={a.specialtyAppointments.data} color="#8FB9B2" /></Card>
+        <Card title="Weekly Appointments"><BarChart labels={a.appointmentTrends?.labels || []} data={a.appointmentTrends?.data || []} /></Card>
+        <Card title="Monthly Patient Registrations"><LineChart labels={a.patientRegistrations?.labels || []} data={a.patientRegistrations?.data || []} color="#3A8D5D" /></Card>
+        <Card title="Appointment Status"><DonutChart labels={a.appointmentStatus?.labels || []} data={a.appointmentStatus?.data || []} /></Card>
+        <Card title="Specialty-wise Appointments"><BarChart labels={a.specialtyAppointments?.labels || []} data={a.specialtyAppointments?.data || []} color="#8FB9B2" /></Card>
       </div>
     </div>
   );

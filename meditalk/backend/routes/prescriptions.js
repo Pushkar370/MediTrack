@@ -3,13 +3,23 @@ import { query } from '../database/db.js';
 
 const router = Router();
 
+function safeJson(val, fallback) {
+  if (val === null || val === undefined || val === '') return fallback;
+  if (typeof val === 'object') return val;
+  try {
+    return JSON.parse(val);
+  } catch {
+    return fallback;
+  }
+}
+
 function parsePrescription(row) {
   if (!row) return null;
   return {
     ...row, patientId: row.patient_id, patientName: row.patient_name,
     doctorId: row.doctor_id, doctorName: row.doctor_name,
     additionalInstructions: row.additional_instructions,
-    medications: typeof row.medications === 'string' ? JSON.parse(row.medications) : (row.medications || []),
+    medications: safeJson(row.medications, []),
   };
 }
 
@@ -66,7 +76,7 @@ function parseConsultation(row) {
     diagnosisCode: row.diagnosis_code, labResults: row.lab_results,
     treatmentPlan: row.treatment_plan, followUpDate: row.follow_up_date,
     followUpInstructions: row.follow_up_instructions,
-    vitals: typeof row.vitals === 'string' ? JSON.parse(row.vitals) : (row.vitals || {}),
+    vitals: safeJson(row.vitals, {}),
   };
 }
 
@@ -102,6 +112,15 @@ router.post('/consultations', async (req, res) => {
         [mrId, patientId, 'Consultation', drName, diagnosis || reason || 'Consultation', 'completed',
          JSON.stringify({ symptoms: symptoms ? symptoms.split(',').map(s => s.trim()) : [], diagnosis, treatment: treatmentPlan, notes: observations })]
       );
+      await query(
+        `INSERT INTO notifications (id, user_id, type, title, message, read) VALUES ($1,$2,'appointment_confirmed','Consultation Completed',$3,false)`,
+        ['N-' + Date.now(), patientId, `Your consultation with ${drName} has been documented in your health records.`]
+      );
+      await query(
+        `INSERT INTO audit_logs (user_id, user_name, role, action, entity_type, entity_id, status)
+         VALUES ($1, $2, 'Doctor', 'Completed clinical consultation', 'Consultation', $3, 'success')`,
+        [doctorId, drName, id]
+      );
     } catch (_) {}
     if (appointmentId) {
       try { await query("UPDATE appointments SET status = 'completed' WHERE id = $1", [appointmentId]); } catch (_) {}
@@ -113,7 +132,7 @@ router.post('/consultations', async (req, res) => {
 
 function parseMedicalRecord(row) {
   if (!row) return null;
-  return { ...row, patientId: row.patient_id, details: typeof row.details === 'string' ? JSON.parse(row.details) : (row.details || {}) };
+  return { ...row, patientId: row.patient_id, details: safeJson(row.details, {}) };
 }
 
 router.get('/medical-records', async (req, res) => {

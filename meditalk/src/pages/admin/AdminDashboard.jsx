@@ -40,23 +40,23 @@ export default function AdminDashboard() {
       {analytics && (
         <div className="grid lg:grid-cols-2 gap-6">
           <Card title="Appointment Trends">
-            <BarChart labels={analytics.appointmentTrends.labels} data={analytics.appointmentTrends.data} />
+            <BarChart labels={analytics.appointmentTrends?.labels || []} data={analytics.appointmentTrends?.data || []} />
           </Card>
           <Card title="Patient Registrations">
-            <LineChart labels={analytics.patientRegistrations.labels} data={analytics.patientRegistrations.data} color="#3A8D5D" />
+            <LineChart labels={analytics.patientRegistrations?.labels || []} data={analytics.patientRegistrations?.data || []} color="#3A8D5D" />
           </Card>
           <Card title="Consultation Trends">
-            <LineChart labels={analytics.consultationTrends.labels} data={analytics.consultationTrends.data} color="#8FB9B2" />
+            <LineChart labels={analytics.consultationTrends?.labels || []} data={analytics.consultationTrends?.data || []} color="#8FB9B2" />
           </Card>
           <Card title="Appointment Status">
-            <DonutChart labels={analytics.appointmentStatus.labels} data={analytics.appointmentStatus.data} />
+            <DonutChart labels={analytics.appointmentStatus?.labels || []} data={analytics.appointmentStatus?.data || []} />
           </Card>
           <Card title="Patient Demographics">
-            <DonutChart labels={analytics.patientDemographics.labels} data={analytics.patientDemographics.data}
+            <DonutChart labels={analytics.patientDemographics?.labels || []} data={analytics.patientDemographics?.data || []}
               colors={["#2F6F68", "#8FB9B2", "#F4C95D", "#D9534F", "#3A8D5D"]} />
           </Card>
           <Card title="Doctor Workload">
-            <BarChart labels={analytics.doctorWorkload.labels} data={analytics.doctorWorkload.data} color="#3A8D5D" />
+            <BarChart labels={analytics.doctorWorkload?.labels || []} data={analytics.doctorWorkload?.data || []} color="#3A8D5D" />
           </Card>
         </div>
       )}

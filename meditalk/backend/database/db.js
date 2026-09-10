@@ -16,10 +16,12 @@ let pool;
 
 export function getPool() {
   if (!pool) {
-    const connectionString = process.env.DATABASE_URL;
+    let connectionString = process.env.DATABASE_URL;
     if (!connectionString) {
       throw new Error('DATABASE_URL environment variable is required. Please set it in your .env file.\nExample: DATABASE_URL=postgresql://postgres:password@localhost:5432/meditalk');
     }
+    // Strip channel_binding if present (Neon includes channel_binding=require which breaks node-postgres)
+    connectionString = connectionString.replace(/[?&]channel_binding=[^&]+/g, '');
     const requiresSsl = process.env.NODE_ENV === 'production' ||
       connectionString.includes('sslmode=require') ||
       connectionString.includes('neon.tech') ||

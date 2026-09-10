@@ -29,7 +29,9 @@ router.get('/analytics', async (req, res) => {
   try {
     const { rows: dayRows } = await query(`
       SELECT EXTRACT(DOW FROM date::date)::int as dow, COUNT(*) as count
-      FROM appointments GROUP BY dow
+      FROM appointments 
+      WHERE date IS NOT NULL AND date ~ '^\d{4}-\d{2}-\d{2}'
+      GROUP BY dow
     `);
     const dayMap = Object.fromEntries(dayRows.map(r => [r.dow, parseInt(r.count)]));
     const appointmentTrends = {
