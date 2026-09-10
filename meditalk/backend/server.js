@@ -1,8 +1,15 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, '../.env') });
+dotenv.config();
+
 import { initDb } from './database/db.js';
 
 import authRoutes from './routes/auth.js';
@@ -12,9 +19,6 @@ import appointmentRoutes from './routes/appointments.js';
 import prescriptionRoutes from './routes/prescriptions.js';
 import notificationRoutes from './routes/notifications.js';
 import adminRoutes from './routes/admin.js';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -39,14 +43,16 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', db: 'postgresql', timestamp: new Date().toISOString() });
 });
 
-app.use('/api/*', (req, res) => {
-  res.status(404).json({ error: `Route not found: ${req.method} ${req.path}` });
+app.use('/api', (req, res) => {
+  res.status(404).json({ error: `Route not found: ${req.method} ${req.originalUrl}` });
 });
 
 if (process.env.NODE_ENV === 'production') {
   const buildPath = path.join(__dirname, '../dist');
   app.use(express.static(buildPath));
-  app.get('*', (req, res) => { res.sendFile(path.join(buildPath, 'index.html')); });
+  app.use((req, res) => {
+    res.sendFile(path.join(buildPath, 'index.html'));
+  });
 }
 
 app.use((err, _req, res, _next) => {
