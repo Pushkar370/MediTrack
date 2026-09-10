@@ -1,0 +1,12 @@
+{
+  "name": "meditalk-workspace",
+  "private": true,
+  "scripts": {
+    "dev": "npm --prefix meditalk run dev",
+    "build": "npm --prefix meditalk run build",
+    "start": "npm --prefix meditalk start",
+    "seed": "npm --prefix meditalk run seed",
+    "client": "npm --prefix meditalk run client",
+    "server": "npm --prefix meditalk run server"
+  }
+}

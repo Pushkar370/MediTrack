@@ -2,6 +2,7 @@
  * MediTalk PostgreSQL Seed Script
  * Run with: npm run seed
  */
+import 'dotenv/config';
 import { getPool, initDb } from './db.js';
 import bcrypt from 'bcryptjs';
 
