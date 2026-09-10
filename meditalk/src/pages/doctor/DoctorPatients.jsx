@@ -29,10 +29,8 @@ export default function DoctorPatients() {
   const [sort, setSort] = useState("name");
   const [page, setPage] = useState(1);
 
-  const { data: patients, loading } = useFetch(() => getPatients());
-  const { data: appointments } = useFetch(() => getAppointments());
-
-  if (loading) return <LoadingState />;
+  const { data: patients, loading: loadingPatients } = useFetch(() => getPatients());
+  const { data: appointments, loading: loadingAppointments } = useFetch(() => getAppointments());
 
   function lastVisit(id) {
     const done = (appointments || []).filter((a) => (a.patientId === id || a.patient_id === id) && a.status === "completed");
@@ -58,6 +56,8 @@ export default function DoctorPatients() {
 
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
   const pageRows = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  if (loadingPatients || loadingAppointments) return <LoadingState />;
 
   const columns = [
     { key: "id", label: "Patient ID" },
