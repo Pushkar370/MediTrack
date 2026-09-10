@@ -20,4 +20,3 @@ databases:
   - name: meditalk-db
     plan: free
     databaseName: meditalk
-
