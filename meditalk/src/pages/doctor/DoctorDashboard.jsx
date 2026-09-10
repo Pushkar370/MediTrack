@@ -56,13 +56,59 @@ export default function DoctorDashboard() {
     },
   ];
 
+  const patientColumns = [
+    {
+      key: "name",
+      label: "Patient",
+      render: (p) => (
+        <div>
+          <p className="font-medium text-ink">{p.name}</p>
+          <p className="text-xs text-ink/50">{p.id} · {p.gender || "—"}</p>
+        </div>
+      ),
+    },
+    { key: "phone", label: "Contact", render: (p) => p.phone || p.email || "—" },
+    { key: "bloodGroup", label: "Blood Group", render: (p) => p.bloodGroup || p.blood_group || "—" },
+    {
+      key: "conditions",
+      label: "Allergies / Conditions",
+      render: (p) => {
+        const all = Array.isArray(p.allergies) ? p.allergies : [];
+        const cond = Array.isArray(p.chronicConditions) ? p.chronicConditions : [];
+        const list = [...all, ...cond];
+        return list.length ? (
+          <span className="text-xs text-ink/70">{list.slice(0, 2).join(", ")}{list.length > 2 ? ` +${list.length - 2}` : ""}</span>
+        ) : (
+          <span className="text-xs text-ink/40">None recorded</span>
+        );
+      },
+    },
+    { key: "status", label: "Status", render: (p) => <StatusBadge status={p.status || "active"} /> },
+    {
+      key: "actions",
+      label: "Actions",
+      render: (p) => (
+        <div className="flex gap-2">
+          <Button size="sm" variant="primary" onClick={() => navigate(`/doctor/consultation/${p.id}`)}>
+            <Play className="h-3.5 w-3.5" /> Consult
+          </Button>
+          <Button size="sm" variant="outline" onClick={() => navigate(`/doctor/patients/${p.id}`)}>
+            <Eye className="h-3.5 w-3.5" /> View
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Doctor Dashboard" subtitle={`Welcome, ${user?.name}`} />
+      <PageHeader title="Doctor Dashboard" subtitle={`Welcome, ${user?.name || "Doctor"}`} />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={CalendarDays} label="Today's Appointments" value={todays.length} tone="primary" />
-        <StatCard icon={Users} label="Total Patients" value={(patients || []).length} tone="sage" />
+        <div onClick={() => navigate("/doctor/patients")} className="cursor-pointer transition hover:scale-[1.01]">
+          <StatCard icon={Users} label="Total Patients" value={(patients || []).length} tone="sage" hint="Click to view all →" />
+        </div>
         <StatCard icon={ClipboardList} label="Pending Consultations" value={pending} tone="accent" />
         <StatCard icon={CalendarClock} label="Follow-ups" value={followUps} tone="success" />
       </div>
@@ -70,6 +116,23 @@ export default function DoctorDashboard() {
       <div className="card">
         <h3 className="font-semibold text-ink mb-4">Today's Appointments</h3>
         <DataTable columns={columns} data={todays} emptyMessage="No appointments scheduled for today." />
+      </div>
+
+      <div className="card">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-semibold text-ink">Assigned Patients</h3>
+            <p className="text-xs text-ink/50 mt-0.5">Quick access to medical profiles and instant consultation.</p>
+          </div>
+          <Button size="sm" variant="outline" onClick={() => navigate("/doctor/patients")}>
+            View All ({(patients || []).length})
+          </Button>
+        </div>
+        <DataTable
+          columns={patientColumns}
+          data={(patients || []).slice(0, 5)}
+          emptyMessage="No patients assigned yet."
+        />
       </div>
     </div>
   );

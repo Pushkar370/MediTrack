@@ -8,6 +8,7 @@ import Button from "../../components/ui/Button";
 import SearchBar from "../../components/ui/SearchBar";
 import EmptyState from "../../components/ui/EmptyState";
 import LoadingState from "../../components/ui/LoadingState";
+import { useAuth } from "../../context/AuthContext";
 import { useFetch } from "../../hooks/useFetch";
 import { getAppointments } from "../../services/appointmentService";
 import { formatDate } from "../../constants";
@@ -16,15 +17,17 @@ const FILTERS = ["All", "upcoming", "confirmed", "completed", "cancelled"];
 
 export default function DoctorAppointments() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const doctorId = user?.id || user?.doctorId || "D-201";
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
-  const { data: appts, loading } = useFetch(() => getAppointments({ doctorId: "D-201" }));
+  const { data: appts, loading } = useFetch(() => getAppointments({ doctorId }), [doctorId]);
 
   if (loading) return <LoadingState />;
 
   const list = (appts || [])
     .filter((a) => filter === "All" || a.status === filter)
-    .filter((a) => a.patientName.toLowerCase().includes(search.toLowerCase()));
+    .filter((a) => (a.patientName || "").toLowerCase().includes(search.toLowerCase()));
 
   const columns = [
     { key: "date", label: "Date", render: (r) => formatDate(r.date) },

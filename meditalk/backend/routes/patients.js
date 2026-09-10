@@ -3,16 +3,29 @@ import { query } from '../database/db.js';
 
 const router = Router();
 
+function safeJson(val, fallback) {
+  if (val === null || val === undefined || val === '') return fallback;
+  if (typeof val === 'object') return val;
+  try {
+    return JSON.parse(val);
+  } catch {
+    if (Array.isArray(fallback) && typeof val === 'string') {
+      return val.split(',').map(s => s.trim()).filter(Boolean);
+    }
+    return fallback;
+  }
+}
+
 function parsePatient(row) {
   if (!row) return null;
   return {
     ...row,
     bloodGroup: row.blood_group,
-    allergies: typeof row.allergies === 'string' ? JSON.parse(row.allergies) : (row.allergies || []),
-    chronicConditions: typeof row.chronic_conditions === 'string' ? JSON.parse(row.chronic_conditions) : (row.chronic_conditions || []),
-    currentMedications: typeof row.current_medications === 'string' ? JSON.parse(row.current_medications) : (row.current_medications || []),
-    emergencyContact: typeof row.emergency_contact === 'string' ? JSON.parse(row.emergency_contact) : (row.emergency_contact || {}),
-    insurance: typeof row.insurance === 'string' ? JSON.parse(row.insurance) : (row.insurance || {}),
+    allergies: safeJson(row.allergies, []),
+    chronicConditions: safeJson(row.chronic_conditions, []),
+    currentMedications: safeJson(row.current_medications, []),
+    emergencyContact: safeJson(row.emergency_contact, {}),
+    insurance: safeJson(row.insurance, {}),
     registeredAt: row.registered_at,
   };
 }
@@ -65,11 +78,11 @@ router.put('/:id', async (req, res) => {
     await query(
       'UPDATE patients SET name=$1,email=$2,phone=$3,dob=$4,gender=$5,address=$6,blood_group=$7,height=$8,weight=$9,allergies=$10,chronic_conditions=$11,current_medications=$12,emergency_contact=$13,insurance=$14,status=$15 WHERE id=$16',
       [name, email, phone, dob, gender, address, bloodGroup, height, weight,
-        JSON.stringify(allergies ?? JSON.parse(e.allergies || '[]')),
-        JSON.stringify(chronicConditions ?? JSON.parse(e.chronic_conditions || '[]')),
-        JSON.stringify(currentMedications ?? JSON.parse(e.current_medications || '[]')),
-        JSON.stringify(emergencyContact ?? JSON.parse(e.emergency_contact || '{}')),
-        JSON.stringify(insurance ?? JSON.parse(e.insurance || '{}')),
+        JSON.stringify(allergies ?? safeJson(e.allergies, [])),
+        JSON.stringify(chronicConditions ?? safeJson(e.chronic_conditions, [])),
+        JSON.stringify(currentMedications ?? safeJson(e.current_medications, [])),
+        JSON.stringify(emergencyContact ?? safeJson(e.emergency_contact, {})),
+        JSON.stringify(insurance ?? safeJson(e.insurance, {})),
         status, id]
     );
     const { rows: updated } = await query('SELECT * FROM patients WHERE id = $1', [id]);

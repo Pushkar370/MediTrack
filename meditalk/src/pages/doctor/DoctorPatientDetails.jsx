@@ -37,6 +37,12 @@ export default function DoctorPatientDetails() {
   if (pl || cl || rl || ml) return <LoadingState />;
   if (!patient) return <div className="card"><p className="text-ink/50">Patient not found.</p></div>;
 
+  const toList = (val) => Array.isArray(val) ? val : (typeof val === 'string' && val ? [val] : []);
+  const patientAge = patient.dob && !isNaN(new Date(patient.dob).getFullYear()) ? new Date().getFullYear() - new Date(patient.dob).getFullYear() : "—";
+  const allergiesList = toList(patient.allergies);
+  const conditionsList = toList(patient.chronicConditions);
+  const medicationsList = toList(patient.currentMedications);
+
   const labs = (records || []).filter((r) => r.type === "Lab Result");
   const imaging = (records || []).filter((r) => r.type === "Imaging");
 
@@ -54,10 +60,10 @@ export default function DoctorPatientDetails() {
             <p className="text-sm text-ink/50">{patient.id}</p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <Meta label="Age" value={new Date().getFullYear() - new Date(patient.dob).getFullYear()} />
-            <Meta label="Gender" value={patient.gender} />
-            <Meta label="Blood Group" value={patient.bloodGroup} icon={<Droplet className="h-4 w-4 text-danger" />} />
-            <Meta label="Allergies" value={(patient.allergies || []).join(", ") || "None"} icon={(patient.allergies || []).length ? <AlertTriangle className="h-4 w-4 text-accent" /> : null} />
+            <Meta label="Age" value={patientAge} />
+            <Meta label="Gender" value={patient.gender || "—"} />
+            <Meta label="Blood Group" value={patient.bloodGroup || patient.blood_group || "—"} icon={<Droplet className="h-4 w-4 text-danger" />} />
+            <Meta label="Allergies" value={allergiesList.join(", ") || "None"} icon={allergiesList.length ? <AlertTriangle className="h-4 w-4 text-accent" /> : null} />
           </div>
         </div>
       </Card>
@@ -84,8 +90,8 @@ export default function DoctorPatientDetails() {
             <Info label="Weight" value={patient.weight} />
             <Info label="Phone" value={patient.phone} />
             <Info label="Email" value={patient.email} />
-            <Info label="Chronic Conditions" value={(patient.chronicConditions || []).join(", ") || "None"} />
-            <Info label="Medications" value={(patient.currentMedications || []).join(", ") || "None"} />
+            <Info label="Chronic Conditions" value={conditionsList.join(", ") || "None"} />
+            <Info label="Medications" value={medicationsList.join(", ") || "None"} />
           </div>
         )}
 

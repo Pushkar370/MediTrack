@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import dotenv from 'dotenv';
 import pg from 'pg';
 import fs from 'fs';
 import path from 'path';
@@ -9,6 +9,9 @@ const { Pool } = pg;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+dotenv.config({ path: path.join(__dirname, '../../.env') });
+dotenv.config();
+
 let pool;
 
 export function getPool() {
@@ -17,9 +20,15 @@ export function getPool() {
     if (!connectionString) {
       throw new Error('DATABASE_URL environment variable is required. Please set it in your .env file.\nExample: DATABASE_URL=postgresql://postgres:password@localhost:5432/meditalk');
     }
+    const requiresSsl = process.env.NODE_ENV === 'production' ||
+      connectionString.includes('sslmode=require') ||
+      connectionString.includes('neon.tech') ||
+      connectionString.includes('supabase.co') ||
+      connectionString.includes('render.com');
+
     pool = new Pool({
       connectionString,
-      ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+      ssl: requiresSsl ? { rejectUnauthorized: false } : false,
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 10000,

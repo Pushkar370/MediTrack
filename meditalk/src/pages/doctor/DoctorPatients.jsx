@@ -18,7 +18,9 @@ import { formatDate } from "../../constants";
 const PAGE_SIZE = 5;
 
 function ageFrom(dob) {
-  return dob ? new Date().getFullYear() - new Date(dob).getFullYear() : "-";
+  if (!dob) return "-";
+  const yr = new Date(dob).getFullYear();
+  return isNaN(yr) ? "-" : new Date().getFullYear() - yr;
 }
 
 export default function DoctorPatients() {
@@ -33,11 +35,11 @@ export default function DoctorPatients() {
   if (loading) return <LoadingState />;
 
   function lastVisit(id) {
-    const done = (appointments || []).filter((a) => a.patientId === id && a.status === "completed");
+    const done = (appointments || []).filter((a) => (a.patientId === id || a.patient_id === id) && a.status === "completed");
     return done.length ? formatDate(done[0].date) : "—";
   }
   function nextVisit(id) {
-    const up = (appointments || []).filter((a) => a.patientId === id && (a.status === "upcoming" || a.status === "confirmed"));
+    const up = (appointments || []).filter((a) => (a.patientId === id || a.patient_id === id) && (a.status === "upcoming" || a.status === "confirmed"));
     return up.length ? formatDate(up[0].date) : "—";
   }
 
@@ -45,12 +47,12 @@ export default function DoctorPatients() {
     let list = (patients || [])
       .filter(
         (p) =>
-          p.name.toLowerCase().includes(search.toLowerCase()) ||
-          p.id.toLowerCase().includes(search.toLowerCase())
+          (p.name || "").toLowerCase().includes(search.toLowerCase()) ||
+          (p.id || "").toLowerCase().includes(search.toLowerCase())
       )
       .map((p) => ({ ...p, age: ageFrom(p.dob) }));
-    if (sort === "name") list.sort((a, b) => a.name.localeCompare(b.name));
-    else if (sort === "age") list.sort((a, b) => a.age - b.age);
+    if (sort === "name") list.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    else if (sort === "age") list.sort((a, b) => (Number(a.age) || 0) - (Number(b.age) || 0));
     return list;
   }, [patients, appointments, search, sort]);
 
