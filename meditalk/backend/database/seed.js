@@ -55,6 +55,9 @@ async function seed() {
       { id: 'U-P-1001', name: 'Aarav Sharma', email: 'patient@meditalk.com', password: hash, role: 'patient', patient_id: 'P-1001', doctor_id: null },
       { id: 'U-D-201', name: 'Dr. Sneha Menon', email: 'doctor@meditalk.com', password: hash, role: 'doctor', patient_id: null, doctor_id: 'D-201' },
       { id: 'U-ADM-1', name: 'Admin User', email: 'admin@meditalk.com', password: hash, role: 'admin', patient_id: null, doctor_id: null },
+      { id: 'U-P-1002', name: 'Aarav Sharma', email: 'patient@meditrack.com', password: hash, role: 'patient', patient_id: 'P-1001', doctor_id: null },
+      { id: 'U-D-202', name: 'Dr. Sneha Menon', email: 'doctor@meditrack.com', password: hash, role: 'doctor', patient_id: null, doctor_id: 'D-201' },
+      { id: 'U-ADM-2', name: 'Admin User', email: 'admin@meditrack.com', password: hash, role: 'admin', patient_id: null, doctor_id: null },
     ];
 
     for (const u of users) {

@@ -15,9 +15,9 @@ const ROLE_OPTIONS = [
 ];
 
 const DEMO = {
-  patient: "patient@meditrack.com",
-  doctor: "doctor@meditrack.com",
-  admin: "admin@meditrack.com",
+  patient: "patient@meditalk.com",
+  doctor: "doctor@meditalk.com",
+  admin: "admin@meditalk.com",
 };
 
 export default function Login() {
@@ -167,10 +167,10 @@ export default function Login() {
                 <button
                   key={k}
                   type="button"
-                  onClick={() => setForm((f) => ({ ...f, email: v, role: k }))}
-                  className="px-2 py-1 rounded-lg bg-white border border-sage/40 hover:bg-sage/20"
+                  onClick={() => setForm((f) => ({ ...f, email: v, role: k, password: "password" }))}
+                  className="px-2 py-1 rounded-lg bg-white border border-sage/40 hover:bg-sage/20 text-xs font-medium capitalize"
                 >
-                  {v}
+                  {k}: {v}
                 </button>
               ))}
             </div>
