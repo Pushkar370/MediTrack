@@ -31,6 +31,14 @@ import {
   AdminDashboard, AdminPatients, AdminDoctors, AdminAppointments, AdminAnalytics, AdminAuditLogs,
 } from "./pages/admin/adminIndex.jsx";
 
+import { useAuth } from "./context/AuthContext";
+
+function RoleRedirect({ subpath }) {
+  const { user, isAuthenticated } = useAuth();
+  if (!isAuthenticated || !user) return <Navigate to="/login" replace />;
+  return <Navigate to={`/${user.role}/${subpath}`} replace />;
+}
+
 export default function App() {
   return (
     <Routes>
@@ -51,6 +59,7 @@ export default function App() {
           <Route path="/patient/book-appointment" element={<BookAppointment />} />
           <Route path="/patient/prescriptions" element={<PatientPrescriptions />} />
           <Route path="/patient/notifications" element={<NotificationCenter />} />
+          <Route path="/patient/settings" element={<Settings />} />
         </Route>
       </Route>
 
@@ -65,6 +74,7 @@ export default function App() {
           <Route path="/doctor/prescriptions" element={<DoctorPrescriptions />} />
           <Route path="/doctor/calendar" element={<DoctorCalendar />} />
           <Route path="/doctor/notifications" element={<NotificationCenter />} />
+          <Route path="/doctor/settings" element={<Settings />} />
         </Route>
       </Route>
 
@@ -78,12 +88,13 @@ export default function App() {
           <Route path="/admin/analytics" element={<AdminAnalytics />} />
           <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
           <Route path="/admin/notifications" element={<NotificationCenter />} />
+          <Route path="/admin/settings" element={<Settings />} />
         </Route>
       </Route>
 
-      {/* Common */}
-      <Route path="/notifications" element={<NotificationCenter />} />
-      <Route path="/settings" element={<Settings />} />
+      {/* Common Fallback Redirects */}
+      <Route path="/notifications" element={<RoleRedirect subpath="notifications" />} />
+      <Route path="/settings" element={<RoleRedirect subpath="settings" />} />
       <Route path="/access-denied" element={<AccessDenied />} />
       <Route path="/404" element={<NotFound />} />
       <Route path="*" element={<NotFound />} />

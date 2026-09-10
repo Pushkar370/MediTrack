@@ -116,7 +116,7 @@ export default function DoctorConsultation() {
           <div>
             <p className="font-semibold text-ink">{patient.name}</p>
             <p className="text-xs text-ink/50">
-              {patient.gender} · {patient.bloodGroup} · {(patient.allergies || []).join(", ") || "No allergies"}
+              {patient.gender || "—"} · {patient.bloodGroup || patient.blood_group || "—"} · {Array.isArray(patient.allergies) ? (patient.allergies.join(", ") || "No allergies") : (patient.allergies || "No allergies")}
             </p>
           </div>
         </div>

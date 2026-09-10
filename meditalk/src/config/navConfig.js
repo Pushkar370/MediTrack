@@ -11,7 +11,7 @@ export const NAV_CONFIG = {
     { label: "Medical History", to: "/patient/history", icon: History },
     { label: "Prescriptions", to: "/patient/prescriptions", icon: Pill },
     { label: "Notifications", to: "/patient/notifications", icon: Bell },
-    { label: "Settings", to: "/settings", icon: Settings },
+    { label: "Settings", to: "/patient/settings", icon: Settings },
   ],
   doctor: [
     { label: "Dashboard", to: "/doctor/dashboard", icon: LayoutDashboard },
@@ -19,8 +19,8 @@ export const NAV_CONFIG = {
     { label: "Patients", to: "/doctor/patients", icon: User },
     { label: "Calendar", to: "/doctor/calendar", icon: Calendar },
     { label: "Prescriptions", to: "/doctor/prescriptions", icon: Pill },
-    { label: "Notifications", to: "/notifications", icon: Bell },
-    { label: "Settings", to: "/settings", icon: Settings },
+    { label: "Notifications", to: "/doctor/notifications", icon: Bell },
+    { label: "Settings", to: "/doctor/settings", icon: Settings },
   ],
   admin: [
     { label: "Dashboard", to: "/admin/dashboard", icon: LayoutDashboard },
@@ -29,7 +29,7 @@ export const NAV_CONFIG = {
     { label: "Appointments", to: "/admin/appointments", icon: CalendarDays },
     { label: "Analytics", to: "/admin/analytics", icon: LayoutDashboard },
     { label: "Audit Logs", to: "/admin/audit-logs", icon: FileText },
-    { label: "Notifications", to: "/notifications", icon: Bell },
-    { label: "Settings", to: "/settings", icon: Settings },
+    { label: "Notifications", to: "/admin/notifications", icon: Bell },
+    { label: "Settings", to: "/admin/settings", icon: Settings },
   ],
 };

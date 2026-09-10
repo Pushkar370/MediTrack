@@ -181,9 +181,11 @@ function Info({ label, value }) {
   );
 }
 function Timeline({ patient, consultations = [], medicalRecords = [] }) {
+  const cList = Array.isArray(consultations) ? consultations : [];
+  const mList = Array.isArray(medicalRecords) ? medicalRecords : [];
   const items = [
-    ...consultations.filter((c) => c.patientId === patient.id).map((c) => ({ ...c, type: "Consultation", title: c.diagnosis, date: c.date })),
-    ...medicalRecords.filter((r) => r.patientId === patient.id).map((r) => ({ ...r, title: r.description })),
+    ...cList.filter((c) => c && c.patientId === patient?.id).map((c) => ({ ...c, type: "Consultation", title: c.diagnosis, date: c.date })),
+    ...mList.filter((r) => r && r.patientId === patient?.id).map((r) => ({ ...r, title: r.description })),
   ].sort((a, b) => new Date(b.date) - new Date(a.date));
 
   if (!items.length) return <EmptyState icon={FileText} title="No history" />;
