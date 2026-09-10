@@ -54,7 +54,7 @@ router.post('/login', async (req, res) => {
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
-  const { name, email, password, role = 'patient' } = req.body;
+  const { name, email, password, role = 'patient', specialty = 'General Medicine', phone, experience = 1, bio } = req.body;
   if (!name || !email || !password) {
     return res.status(400).json({ success: false, message: 'Name, email and password are required.' });
   }
@@ -66,20 +66,30 @@ router.post('/register', async (req, res) => {
     }
 
     const userId = `U-${Date.now()}`;
-    const patientId = role === 'patient' ? `P-${Date.now()}` : null;
     const hash = bcrypt.hashSync(password, 10);
 
-    if (patientId) {
+    if (role === 'doctor') {
+      const doctorId = `D-${Math.floor(100 + Math.random() * 900)}`;
       await query(
-        `INSERT INTO patients (id, name, email, status, registered_at) VALUES ($1, $2, $3, 'active', NOW())`,
-        [patientId, name, email]
+        `INSERT INTO doctors (id, name, specialty, email, phone, experience, availability, status, bio)
+         VALUES ($1, $2, $3, $4, $5, $6, 'Available', 'active', $7)`,
+        [doctorId, name, specialty, email, phone || null, parseInt(experience, 10) || 1, bio || `${specialty} Specialist`]
+      );
+      await query(
+        `INSERT INTO users (id, name, email, password, role, doctor_id) VALUES ($1, $2, $3, $4, 'doctor', $5)`,
+        [userId, name, email, hash, doctorId]
+      );
+    } else {
+      const patientId = `P-${Math.floor(1000 + Math.random() * 9000)}`;
+      await query(
+        `INSERT INTO patients (id, name, email, phone, status, registered_at) VALUES ($1, $2, $3, $4, 'active', NOW())`,
+        [patientId, name, email, phone || null]
+      );
+      await query(
+        `INSERT INTO users (id, name, email, password, role, patient_id) VALUES ($1, $2, $3, $4, 'patient', $5)`,
+        [userId, name, email, hash, patientId]
       );
     }
-
-    await query(
-      `INSERT INTO users (id, name, email, password, role, patient_id) VALUES ($1, $2, $3, $4, $5, $6)`,
-      [userId, name, email, hash, role, patientId]
-    );
 
     res.status(201).json({ success: true, message: 'Registration successful. Please log in.' });
   } catch (err) {
