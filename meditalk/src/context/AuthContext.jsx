@@ -16,7 +16,8 @@ export function AuthProvider({ children }) {
   });
   const [loading, setLoading] = useState(false);
 
-  // Persist the logged-in user (stand-in for a stored JWT).
+  // Persist the full user object (including token) to localStorage so
+  // apiClient.js can always read a valid Bearer token.
   useEffect(() => {
     if (user) localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
     else localStorage.removeItem(STORAGE_KEY);
@@ -26,7 +27,10 @@ export function AuthProvider({ children }) {
     setLoading(true);
     const res = await loginService(credentials);
     setLoading(false);
-    if (res.success) setUser(res.user);
+    if (res.success) {
+      // Merge the JWT token into the user payload so apiClient always has it.
+      setUser({ ...res.user, token: res.token });
+    }
     return res;
   }
 

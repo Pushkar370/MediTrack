@@ -1,10 +1,12 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { query } from '../database/db.js';
+import { requireAuth, requireRole } from '../middleware/auth.js';
 
 const router = Router();
 
-router.get('/', async (req, res) => {
+// GET /api/doctors — all authenticated users (needed for appointment booking)
+router.get('/', requireAuth, async (req, res) => {
   try {
     const { status, specialty, search } = req.query;
     let sql = 'SELECT * FROM doctors';
@@ -21,7 +23,8 @@ router.get('/', async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to fetch doctors' }); }
 });
 
-router.get('/:id', async (req, res) => {
+// GET /api/doctors/:id — all authenticated users
+router.get('/:id', requireAuth, async (req, res) => {
   try {
     const { rows } = await query('SELECT * FROM doctors WHERE id = $1', [req.params.id]);
     if (!rows[0]) return res.status(404).json({ error: 'Doctor not found' });
@@ -29,7 +32,8 @@ router.get('/:id', async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to fetch doctor' }); }
 });
 
-router.post('/', async (req, res) => {
+// POST /api/doctors — admin only
+router.post('/', requireAuth, requireRole('admin'), async (req, res) => {
   try {
     const { name, email, phone, specialty, experience = 0, availability = 'Available', status = 'active', bio = '' } = req.body;
     if (!name) return res.status(400).json({ error: 'Name is required' });
@@ -62,7 +66,8 @@ router.post('/', async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to create doctor' }); }
 });
 
-router.put('/:id', async (req, res) => {
+// PUT /api/doctors/:id — admin only
+router.put('/:id', requireAuth, requireRole('admin'), async (req, res) => {
   try {
     const { id } = req.params;
     const { rows: ex } = await query('SELECT * FROM doctors WHERE id = $1', [id]);
@@ -98,7 +103,8 @@ router.put('/:id', async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to update doctor' }); }
 });
 
-router.patch('/:id/status', async (req, res) => {
+// PATCH /api/doctors/:id/status — admin only
+router.patch('/:id/status', requireAuth, requireRole('admin'), async (req, res) => {
   try {
     const { status } = req.body;
     if (!status) return res.status(400).json({ error: 'Status is required' });

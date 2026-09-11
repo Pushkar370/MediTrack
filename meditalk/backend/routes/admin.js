@@ -1,7 +1,12 @@
 import { Router } from 'express';
 import { query } from '../database/db.js';
+import { requireAuth, requireRole } from '../middleware/auth.js';
 
 const router = Router();
+
+// All admin routes require authentication + admin role
+router.use(requireAuth, requireRole('admin'));
+
 
 router.get('/stats', async (req, res) => {
   try {

@@ -1,5 +1,5 @@
 /**
- * API client for MediTrack.
+ * API client for MediTalk.
  * All requests go through /api/... which the Vite dev proxy forwards to
  * the Express backend on port 3001. No hardcoded localhost URLs needed.
  */
@@ -31,9 +31,17 @@ export async function apiFetch(path, options = {}) {
   const body = contentType.includes('application/json') ? await res.json() : await res.text();
 
   if (!res.ok) {
+    // On 401 Unauthorized, clear stale credentials and redirect to login
+    if (res.status === 401) {
+      localStorage.removeItem('meditrack_user');
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    }
     const message = typeof body === 'object' ? (body.error || body.message || 'Request failed') : body;
     throw new Error(message);
   }
 
   return body;
 }
+

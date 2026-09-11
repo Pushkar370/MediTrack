@@ -1,7 +1,11 @@
 import { Router } from 'express';
 import { query } from '../database/db.js';
+import { requireAuth } from '../middleware/auth.js';
 
 const router = Router();
+
+// All appointment routes require authentication
+router.use(requireAuth);
 
 function mapAppt(r) {
   return {
@@ -11,13 +15,28 @@ function mapAppt(r) {
   };
 }
 
+// GET /api/appointments — filtered by role automatically
 router.get('/', async (req, res) => {
   try {
+    const { role, id: callerId } = req.user;
     const { patientId, doctorId, status, date, specialty, type } = req.query;
+
     let sql = 'SELECT * FROM appointments';
     const conditions = []; const params = []; let idx = 1;
-    if (patientId) { conditions.push('patient_id = $' + idx++); params.push(patientId); }
-    if (doctorId) { conditions.push('doctor_id = $' + idx++); params.push(doctorId); }
+
+    // Enforce data scoping by role
+    if (role === 'patient') {
+      conditions.push('patient_id = $' + idx++);
+      params.push(callerId);
+    } else if (role === 'doctor') {
+      conditions.push('doctor_id = $' + idx++);
+      params.push(callerId);
+    } else {
+      // admin can filter freely
+      if (patientId) { conditions.push('patient_id = $' + idx++); params.push(patientId); }
+      if (doctorId) { conditions.push('doctor_id = $' + idx++); params.push(doctorId); }
+    }
+
     if (status) { conditions.push('status = $' + idx++); params.push(status); }
     if (date) { conditions.push('date = $' + idx++); params.push(date); }
     if (specialty) { conditions.push('specialty = $' + idx++); params.push(specialty); }
@@ -37,12 +56,46 @@ router.get('/:id', async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to fetch appointment' }); }
 });
 
+// POST /api/appointments — book a new appointment with double-booking protection
 router.post('/', async (req, res) => {
   try {
     const { patientId, patientName, doctorId, doctorName, specialty, date, time, type, reason } = req.body;
     if (!patientId || !doctorId || !date || !time) {
       return res.status(400).json({ error: 'patientId, doctorId, date and time are required' });
     }
+
+    // --- Double-booking collision detection ---
+    // Check: is the doctor already booked at this exact date+time with an active status?
+    const { rows: doctorConflict } = await query(
+      `SELECT id FROM appointments
+       WHERE doctor_id = $1 AND date = $2 AND time = $3
+         AND status NOT IN ('cancelled')
+       LIMIT 1`,
+      [doctorId, date, time]
+    );
+    if (doctorConflict.length > 0) {
+      return res.status(409).json({
+        error: 'This time slot has just been booked. Please select another time.',
+        code: 'SLOT_CONFLICT',
+      });
+    }
+
+    // Check: does the patient already have an active appointment at the same date+time?
+    const { rows: patientConflict } = await query(
+      `SELECT id FROM appointments
+       WHERE patient_id = $1 AND date = $2 AND time = $3
+         AND status NOT IN ('cancelled')
+       LIMIT 1`,
+      [patientId, date, time]
+    );
+    if (patientConflict.length > 0) {
+      return res.status(409).json({
+        error: 'You already have an appointment at this time. Please choose a different slot.',
+        code: 'PATIENT_CONFLICT',
+      });
+    }
+    // ------------------------------------------
+
     const id = 'A-' + Date.now();
     await query(
       `INSERT INTO appointments (id, patient_id, patient_name, doctor_id, doctor_name, specialty, date, time, type, status, reason) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'upcoming',$10)`,
@@ -104,6 +157,21 @@ router.patch('/:id/reschedule', async (req, res) => {
   try {
     const { date, time } = req.body;
     if (!date || !time) return res.status(400).json({ error: 'date and time are required' });
+
+    // Check if new slot is already taken by the same doctor
+    const { rows: existing } = await query('SELECT doctor_id FROM appointments WHERE id = $1', [req.params.id]);
+    if (!existing[0]) return res.status(404).json({ error: 'Appointment not found' });
+
+    const doctorId = existing[0].doctor_id;
+    const { rows: conflict } = await query(
+      `SELECT id FROM appointments WHERE doctor_id = $1 AND date = $2 AND time = $3
+         AND status NOT IN ('cancelled') AND id != $4 LIMIT 1`,
+      [doctorId, date, time, req.params.id]
+    );
+    if (conflict.length > 0) {
+      return res.status(409).json({ error: 'That time slot is already booked. Please select another.', code: 'SLOT_CONFLICT' });
+    }
+
     const { rowCount } = await query("UPDATE appointments SET date = $1, time = $2, status = 'confirmed' WHERE id = $3", [date, time, req.params.id]);
     if (rowCount === 0) return res.status(404).json({ error: 'Appointment not found' });
 

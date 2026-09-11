@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { query } from '../database/db.js';
+import { requireAuth, requireRole } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -31,7 +32,8 @@ function parsePatient(row) {
   };
 }
 
-router.get('/', async (req, res) => {
+// GET /api/patients — doctors and admins only
+router.get('/', requireAuth, requireRole('doctor', 'admin'), async (req, res) => {
   try {
     const { status, search } = req.query;
     let sql = 'SELECT * FROM patients';
@@ -47,15 +49,23 @@ router.get('/', async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to fetch patients' }); }
 });
 
-router.get('/:id', async (req, res) => {
+// GET /api/patients/:id — patient themselves, doctor, or admin
+router.get('/:id', requireAuth, async (req, res) => {
   try {
-    const { rows } = await query('SELECT * FROM patients WHERE id = $1', [req.params.id]);
+    const { role, id: callerId } = req.user;
+    const { id } = req.params;
+    // Patients can only view their own profile
+    if (role === 'patient' && callerId !== id) {
+      return res.status(403).json({ error: 'Forbidden — cannot access another patient\'s profile' });
+    }
+    const { rows } = await query('SELECT * FROM patients WHERE id = $1', [id]);
     if (!rows[0]) return res.status(404).json({ error: 'Patient not found' });
     res.json(parsePatient(rows[0]));
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to fetch patient' }); }
 });
 
-router.post('/', async (req, res) => {
+// POST /api/patients — admin only (admin-created patient records)
+router.post('/', requireAuth, requireRole('admin'), async (req, res) => {
   try {
     const { name, email, phone, dob, gender, address, bloodGroup, height, weight, allergies = [], chronicConditions = [], currentMedications = [], emergencyContact = {}, insurance = {}, status = 'active' } = req.body;
     if (!name) return res.status(400).json({ error: 'Name is required' });
@@ -79,7 +89,7 @@ router.post('/', async (req, res) => {
       await query(
         `INSERT INTO audit_logs (user_id, user_name, role, action, entity_type, entity_id, status)
          VALUES ($1, $2, 'Administrator', 'Created new patient profile', 'Patient', $3, 'success')`,
-        ['ADMIN', name, id]
+        [req.user.userId, req.user.name, id]
       );
     } catch (_) {}
 
@@ -88,9 +98,17 @@ router.post('/', async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to create patient' }); }
 });
 
-router.put('/:id', async (req, res) => {
+// PUT /api/patients/:id — patient themselves, or admin
+router.put('/:id', requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
+    const { role, id: callerId } = req.user;
+    if (role === 'patient' && callerId !== id) {
+      return res.status(403).json({ error: 'Forbidden — cannot update another patient\'s profile' });
+    }
+    if (role === 'doctor') {
+      return res.status(403).json({ error: 'Forbidden — doctors cannot update patient profiles directly' });
+    }
     const { rows: ex } = await query('SELECT * FROM patients WHERE id = $1', [id]);
     if (!ex[0]) return res.status(404).json({ error: 'Patient not found' });
     const e = ex[0];
@@ -128,7 +146,8 @@ router.put('/:id', async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to update patient' }); }
 });
 
-router.patch('/:id/status', async (req, res) => {
+// PATCH /api/patients/:id/status — admin only
+router.patch('/:id/status', requireAuth, requireRole('admin'), async (req, res) => {
   try {
     const { status } = req.body;
     if (!status) return res.status(400).json({ error: 'Status is required' });
@@ -139,3 +158,5 @@ router.patch('/:id/status', async (req, res) => {
 });
 
 export default router;
+
+

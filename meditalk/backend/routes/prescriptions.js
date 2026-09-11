@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { query } from '../database/db.js';
+import { requireAuth, requireRole } from '../middleware/auth.js';
 
 const router = Router();
 
@@ -23,13 +24,24 @@ function parsePrescription(row) {
   };
 }
 
-router.get('/prescriptions', async (req, res) => {
+// GET /api/prescriptions — authenticated users; patients see only their own
+router.get('/prescriptions', requireAuth, async (req, res) => {
   try {
+    const { role, id: callerId } = req.user;
     const { patientId, doctorId } = req.query;
+
     let sql = 'SELECT * FROM prescriptions';
     const conditions = []; const params = []; let idx = 1;
-    if (patientId) { conditions.push('patient_id = $' + idx++); params.push(patientId); }
-    if (doctorId) { conditions.push('doctor_id = $' + idx++); params.push(doctorId); }
+
+    if (role === 'patient') {
+      // Patients can only see their own prescriptions
+      conditions.push('patient_id = $' + idx++);
+      params.push(callerId);
+    } else {
+      if (patientId) { conditions.push('patient_id = $' + idx++); params.push(patientId); }
+      if (doctorId) { conditions.push('doctor_id = $' + idx++); params.push(doctorId); }
+    }
+
     if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ');
     sql += ' ORDER BY date DESC';
     const { rows } = await query(sql, params);
@@ -37,15 +49,22 @@ router.get('/prescriptions', async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to fetch prescriptions' }); }
 });
 
-router.get('/prescriptions/:id', async (req, res) => {
+// GET /api/prescriptions/:id — authenticated; ownership checked below if needed
+router.get('/prescriptions/:id', requireAuth, async (req, res) => {
   try {
     const { rows } = await query('SELECT * FROM prescriptions WHERE id = $1', [req.params.id]);
     if (!rows[0]) return res.status(404).json({ error: 'Prescription not found' });
-    res.json(parsePrescription(rows[0]));
+    const rx = parsePrescription(rows[0]);
+    const { role, id: callerId } = req.user;
+    if (role === 'patient' && rx.patientId !== callerId) {
+      return res.status(403).json({ error: 'Forbidden — cannot access another patient\'s prescription' });
+    }
+    res.json(rx);
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to fetch prescription' }); }
 });
 
-router.post('/prescriptions', async (req, res) => {
+// POST /api/prescriptions — doctors only
+router.post('/prescriptions', requireAuth, requireRole('doctor'), async (req, res) => {
   try {
     const { patientId, patientName, doctorId, doctorName, medications = [], additionalInstructions = '', status = 'active' } = req.body;
     if (!patientId || !doctorId) return res.status(400).json({ error: 'patientId and doctorId are required' });
@@ -80,13 +99,23 @@ function parseConsultation(row) {
   };
 }
 
-router.get('/consultations', async (req, res) => {
+// GET /api/consultations — patients see own, doctors see their patients', admins see all
+router.get('/consultations', requireAuth, async (req, res) => {
   try {
+    const { role, id: callerId } = req.user;
     const { patientId, doctorId } = req.query;
+
     let sql = 'SELECT * FROM consultations';
     const conditions = []; const params = []; let idx = 1;
-    if (patientId) { conditions.push('patient_id = $' + idx++); params.push(patientId); }
-    if (doctorId) { conditions.push('doctor_id = $' + idx++); params.push(doctorId); }
+
+    if (role === 'patient') {
+      conditions.push('patient_id = $' + idx++);
+      params.push(callerId);
+    } else {
+      if (patientId) { conditions.push('patient_id = $' + idx++); params.push(patientId); }
+      if (doctorId) { conditions.push('doctor_id = $' + idx++); params.push(doctorId); }
+    }
+
     if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ');
     sql += ' ORDER BY date DESC';
     const { rows } = await query(sql, params);
@@ -94,7 +123,8 @@ router.get('/consultations', async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ error: 'Failed to fetch consultations' }); }
 });
 
-router.post('/consultations', async (req, res) => {
+// POST /api/consultations — doctors only
+router.post('/consultations', requireAuth, requireRole('doctor'), async (req, res) => {
   try {
     const { patientId, doctorId, reason, symptoms, vitals = {}, diagnosis, diagnosisCode, observations, labResults, treatmentPlan, followUpDate, followUpInstructions, status = 'completed', appointmentId } = req.body;
     if (!patientId || !doctorId) return res.status(400).json({ error: 'patientId and doctorId are required' });
@@ -135,12 +165,22 @@ function parseMedicalRecord(row) {
   return { ...row, patientId: row.patient_id, details: safeJson(row.details, {}) };
 }
 
-router.get('/medical-records', async (req, res) => {
+// GET /api/medical-records — patients see own, doctors and admins see all (with filter)
+router.get('/medical-records', requireAuth, async (req, res) => {
   try {
+    const { role, id: callerId } = req.user;
     const { patientId, type } = req.query;
+
     let sql = 'SELECT * FROM medical_records';
     const conditions = []; const params = []; let idx = 1;
-    if (patientId) { conditions.push('patient_id = $' + idx++); params.push(patientId); }
+
+    if (role === 'patient') {
+      conditions.push('patient_id = $' + idx++);
+      params.push(callerId);
+    } else {
+      if (patientId) { conditions.push('patient_id = $' + idx++); params.push(patientId); }
+    }
+
     if (type) { conditions.push('type = $' + idx++); params.push(type); }
     if (conditions.length) sql += ' WHERE ' + conditions.join(' AND ');
     sql += ' ORDER BY date DESC';
